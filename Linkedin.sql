@@ -31,10 +31,11 @@ FROM LINKEDIN.ORGANIZATION
 Categories as (SELECT 
 -- ID "Post_ID"
  ORGANIZATION_ID 
+, COUNT(*) "Post_Count"
 , DATE(FIRST_PUBLISHED_AT) as "Date"
-, SUM(REGEXP_COUNT(COMMENTARY, '@')) "Number of Mentions"
+, AVG(REGEXP_COUNT(COMMENTARY, '@')) "Number of Mentions"
 , MAX(CASE WHEN REGEXP_SUBSTR(COMMENTARY, '@') != '' THEN TRUE ELSE FALSE END) "Mention Binary"
-, SUM(REGEXP_COUNT(COMMENTARY, 'hashtag')) "Number of Hashtags"
+, AVG(REGEXP_COUNT(COMMENTARY, 'hashtag')) "Number of Hashtags"
 , MAX(CASE WHEN REGEXP_SUBSTR(COMMENTARY, 'hashtag') != '' THEN TRUE ELSE FALSE END) "Hashtag Binary"
 , ARRAYAGG (REGEXP_SUBSTR_ALL(COMMENTARY, '#.*}')) "Hashtag List"
 , MAX(CASE WHEN REGEXP_SUBSTR(COMMENTARY, 'AI') != '' THEN TRUE ELSE FALSE END) "AI"
@@ -77,8 +78,8 @@ SELECT DATE(DAY) as "Date",
    C."Blog",
    C."Tableau",
    C."Alteryx",
-   C."Power BI"
-
+   C."Power BI",
+   C."Post_Count"
    FROM date_cte D
  
 JOIN linkedin.time_bound_share_statistic as S
@@ -89,9 +90,10 @@ LEFT JOIN FOLLOWERS_GAINED AS F
     AND REGEXP_SUBSTR(S.organization_entity,'[0-9]+') = F."ORG_ID"
 
 LEFT JOIN ORG_INFO AS I
-    ON I.ID = F."ORG_ID"
+    ON I.ID = REGEXP_SUBSTR(organization_entity,'[0-9]+')
 
 LEFT JOIN Categories AS C
     ON C.Organization_ID = REGEXP_SUBSTR(S.organization_entity,'[0-9]+')
     AND C."Date" = DATE(S.DAY)
-;
+
+    ORDER BY ORG_ID, DATE
